@@ -3,13 +3,13 @@
 ## M1: Project Setup & Research
 **Goal:** Set up the development environment, understand TON Jetton standard (TEP-74).
 
-- [ ] Initialize project with Blueprint (TON CLI scaffolding)
-- [ ] Research TEP-74 Jetton standard (master + wallet contracts)
-- [ ] Research FunC vs Tact — choose language for contracts
-- [ ] Set up testing framework (@ton/sandbox + Jest)
-- [ ] Document architecture decisions
+- [x] Initialize project with Blueprint (TON CLI scaffolding)
+- [x] Research TEP-74 Jetton standard (master + wallet contracts)
+- [x] Research FunC vs Tact — choose language for contracts → **Tact**
+- [x] Set up testing framework (@ton/sandbox + Jest)
+- [x] Document architecture decisions (D005, D006)
 
-**Exit criteria:** Project compiles, empty test suite runs green.
+**Exit criteria:** Project compiles, empty test suite runs green. **DONE**
 
 ---
 
