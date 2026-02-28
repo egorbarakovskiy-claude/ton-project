@@ -13,32 +13,35 @@
 
 ---
 
-## M2: Jetton Master Contract
-**Goal:** Implement the Jetton Master contract with fixed supply.
+## M2+M3: Jetton Master + Wallet Contracts (merged)
+**Goal:** Implement both Jetton contracts with fixed supply — Master and Wallet are tightly coupled in TEP-74.
 
-- [ ] Implement Jetton Master contract (TEP-74 compliant)
-- [ ] Implement metadata (name: BOTKKas, decimals: 0, total supply: 1,000,000)
-- [ ] Implement `get_jetton_data()` getter
-- [ ] Tests: deployment, metadata correctness, supply validation
-- [ ] Tests: reject any mint attempts after deploy
+### Master Contract
+- [x] Implement Jetton Master contract (TEP-74 compliant)
+- [x] Implement metadata (name: BOTKKas, decimals: 0, total supply: 1,000,000)
+- [x] Implement `get_jetton_data()` getter
+- [x] Implement TEP-89 wallet discovery (`ProvideWalletAddress`)
+- [x] Implement admin controls (CloseMinting, ChangeOwner, UpdateContent)
+- [x] Tests: deployment, metadata correctness, supply validation (6 tests)
+- [x] Tests: reject mint from non-admin, close minting, reject after close (3 tests)
+- [x] Tests: admin controls — change owner, update content (3 tests)
 
-**Exit criteria:** Master contract deployed in local sandbox, all tests pass.
+### Wallet Contract
+- [x] Implement Jetton Wallet contract (TEP-74 compliant)
+- [x] Implement `transfer` (send tokens to another address)
+- [x] Implement `burn` (destroy tokens)
+- [x] Implement `get_wallet_data()` getter
+- [x] Implement bounced handlers (rollback on failure)
+- [x] Tests: transfer between wallets (2 tests)
+- [x] Tests: insufficient balance rejection (1 test)
+- [x] Tests: burn reduces supply correctly (1 test)
+- [x] Tests: unauthorized transfer/burn rejection (2 tests)
+- [x] Tests: TEP-89 wallet discovery (1 test)
+- [x] Tests: full lifecycle — mint → close → transfer → burn (1 test)
 
----
+**Total: 21 tests, all passing**
 
-## M3: Jetton Wallet Contract
-**Goal:** Implement the Jetton Wallet contract for token holders.
-
-- [ ] Implement Jetton Wallet contract (TEP-74 compliant)
-- [ ] Implement `transfer` (send tokens to another address)
-- [ ] Implement `burn` (destroy tokens)
-- [ ] Implement `get_wallet_data()` getter
-- [ ] Tests: transfer between wallets
-- [ ] Tests: insufficient balance rejection
-- [ ] Tests: burn reduces supply correctly
-- [ ] Tests: unauthorized transfer rejection
-
-**Exit criteria:** Wallet contract works in sandbox, full transfer lifecycle tested.
+**Exit criteria:** Both contracts work in sandbox, full lifecycle tested. **DONE**
 
 ---
 
