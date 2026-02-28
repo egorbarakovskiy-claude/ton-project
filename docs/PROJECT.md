@@ -56,10 +56,10 @@ BOTKKas is a Jetton (fungible token) on the TON blockchain, designed to serve as
 
 | Component       | Technology                  |
 |-----------------|-----------------------------|
-| Smart Contracts | FunC / Tact (TON)           |
-| Testing         | @ton/sandbox + Jest         |
-| Deployment      | Blueprint (TON CLI)         |
-| SDK             | @ton/ton, @ton/core         |
+| Smart Contracts | Tact 1.6.x                  |
+| Testing         | @ton/sandbox 0.25 + Jest 29 |
+| Toolchain       | Blueprint 0.43 (TON CLI)    |
+| SDK             | @ton/core                   |
 | Network         | TON Testnet → Mainnet       |
 
 ## Quality Policy

@@ -27,3 +27,22 @@ All decisions made during the project are recorded here.
 **Date:** 2026-02-28
 **Decision:** Every contract feature must be covered by tests. No code merges without tests.
 **Rationale:** Smart contracts handle value and are immutable once deployed. Bugs are expensive. Tests are cheap.
+
+## D005: Tact Language (Not FunC)
+
+**Date:** 2026-02-28
+**Decision:** Use Tact as the smart contract language instead of FunC.
+**Rationale:**
+- FunC is officially deprecated by TON Foundation (July 2025)
+- Tact has lower entry barrier (TypeScript-like syntax)
+- Blueprint auto-generates TypeScript wrappers for Tact contracts — critical for our test-heavy approach
+- 33% of mainnet contracts are written in Tact, production-ready
+- CertiK audited the language (Dec 2024)
+**Consequence:** We depend on Tact compiler ecosystem. Contract code is more readable but less low-level control.
+
+## D006: Blueprint Toolchain
+
+**Date:** 2026-02-28
+**Decision:** Use Blueprint as the build/test/deploy toolchain with Jest + @ton/sandbox for testing.
+**Rationale:** Official TON toolchain. Handles compilation, wrapper generation, deployment scripts, and testing setup out of the box.
+**Stack:** Tact 1.6.x + Blueprint 0.43.x + Jest 29.x + @ton/sandbox 0.25.x
