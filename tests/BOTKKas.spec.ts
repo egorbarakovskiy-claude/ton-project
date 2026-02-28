@@ -612,4 +612,362 @@ describe('BOTKKas Jetton', () => {
             expect(user1Data.balance).toBe(4000n); // 5000 - 1000
         });
     });
+
+    // ==========================================
+    // M4: Integration Testing
+    // ==========================================
+
+    describe('Integration: E2E Flow', () => {
+        it('should handle full chain: deploy → mint → distribute to 3 participants → they trade between each other', async () => {
+            const user3 = await blockchain.treasury('user3');
+            const adminWallet = await getJettonWallet(admin.address);
+
+            // Admin distributes to 3 participants
+            for (const [user, amount] of [[user1, 10_000n], [user2, 5_000n], [user3, 3_000n]] as const) {
+                await adminWallet.send(
+                    admin.getSender(),
+                    { value: toNano('0.1') },
+                    {
+                        $$type: 'JettonTransfer',
+                        queryId: 0n,
+                        amount: amount,
+                        destination: user.address,
+                        responseDestination: admin.address,
+                        customPayload: null,
+                        forwardTonAmount: 0n,
+                        forwardPayload: beginCell().storeUint(0, 1).asSlice(),
+                    }
+                );
+            }
+
+            // user1 sends 2000 to user2
+            const user1Wallet = await getJettonWallet(user1.address);
+            await user1Wallet.send(
+                user1.getSender(),
+                { value: toNano('0.1') },
+                {
+                    $$type: 'JettonTransfer',
+                    queryId: 1n,
+                    amount: 2_000n,
+                    destination: user2.address,
+                    responseDestination: user1.address,
+                    customPayload: null,
+                    forwardTonAmount: 0n,
+                    forwardPayload: beginCell().storeUint(0, 1).asSlice(),
+                }
+            );
+
+            // user2 sends 1000 to user3
+            const user2Wallet = await getJettonWallet(user2.address);
+            await user2Wallet.send(
+                user2.getSender(),
+                { value: toNano('0.1') },
+                {
+                    $$type: 'JettonTransfer',
+                    queryId: 2n,
+                    amount: 1_000n,
+                    destination: user3.address,
+                    responseDestination: user2.address,
+                    customPayload: null,
+                    forwardTonAmount: 0n,
+                    forwardPayload: beginCell().storeUint(0, 1).asSlice(),
+                }
+            );
+
+            // Verify all balances
+            const adminData = await adminWallet.getGetWalletData();
+            expect(adminData.balance).toBe(TOTAL_SUPPLY - 18_000n); // 982,000
+
+            const u1Data = await user1Wallet.getGetWalletData();
+            expect(u1Data.balance).toBe(8_000n); // 10000 - 2000
+
+            const u2Data = await user2Wallet.getGetWalletData();
+            expect(u2Data.balance).toBe(6_000n); // 5000 + 2000 - 1000
+
+            const user3Wallet = await getJettonWallet(user3.address);
+            const u3Data = await user3Wallet.getGetWalletData();
+            expect(u3Data.balance).toBe(4_000n); // 3000 + 1000
+        });
+    });
+
+    describe('Integration: Total Supply Consistency', () => {
+        it('should keep total supply consistent after multiple transfers', async () => {
+            const adminWallet = await getJettonWallet(admin.address);
+
+            // Transfer to user1 and user2
+            await adminWallet.send(
+                admin.getSender(),
+                { value: toNano('0.1') },
+                {
+                    $$type: 'JettonTransfer',
+                    queryId: 0n,
+                    amount: 50_000n,
+                    destination: user1.address,
+                    responseDestination: admin.address,
+                    customPayload: null,
+                    forwardTonAmount: 0n,
+                    forwardPayload: beginCell().storeUint(0, 1).asSlice(),
+                }
+            );
+
+            await adminWallet.send(
+                admin.getSender(),
+                { value: toNano('0.1') },
+                {
+                    $$type: 'JettonTransfer',
+                    queryId: 1n,
+                    amount: 30_000n,
+                    destination: user2.address,
+                    responseDestination: admin.address,
+                    customPayload: null,
+                    forwardTonAmount: 0n,
+                    forwardPayload: beginCell().storeUint(0, 1).asSlice(),
+                }
+            );
+
+            // user1 -> user2
+            const user1Wallet = await getJettonWallet(user1.address);
+            await user1Wallet.send(
+                user1.getSender(),
+                { value: toNano('0.1') },
+                {
+                    $$type: 'JettonTransfer',
+                    queryId: 2n,
+                    amount: 10_000n,
+                    destination: user2.address,
+                    responseDestination: user1.address,
+                    customPayload: null,
+                    forwardTonAmount: 0n,
+                    forwardPayload: beginCell().storeUint(0, 1).asSlice(),
+                }
+            );
+
+            // Total supply unchanged (transfers don't change supply)
+            const minterData = await jettonMinter.getGetJettonData();
+            expect(minterData.totalSupply).toBe(TOTAL_SUPPLY);
+
+            // Sum of all balances = total supply
+            const adminData = await adminWallet.getGetWalletData();
+            const u1Data = await user1Wallet.getGetWalletData();
+            const user2Wallet = await getJettonWallet(user2.address);
+            const u2Data = await user2Wallet.getGetWalletData();
+
+            const sumBalances = adminData.balance + u1Data.balance + u2Data.balance;
+            expect(sumBalances).toBe(TOTAL_SUPPLY);
+        });
+
+        it('should reduce total supply only on burn', async () => {
+            const adminWallet = await getJettonWallet(admin.address);
+
+            // Transfer then burn
+            await adminWallet.send(
+                admin.getSender(),
+                { value: toNano('0.1') },
+                {
+                    $$type: 'JettonTransfer',
+                    queryId: 0n,
+                    amount: 10_000n,
+                    destination: user1.address,
+                    responseDestination: admin.address,
+                    customPayload: null,
+                    forwardTonAmount: 0n,
+                    forwardPayload: beginCell().storeUint(0, 1).asSlice(),
+                }
+            );
+
+            // user1 burns 3000
+            const user1Wallet = await getJettonWallet(user1.address);
+            await user1Wallet.send(
+                user1.getSender(),
+                { value: toNano('0.1') },
+                {
+                    $$type: 'JettonBurn',
+                    queryId: 1n,
+                    amount: 3_000n,
+                    responseDestination: user1.address,
+                    customPayload: null,
+                }
+            );
+
+            // admin burns 5000
+            await adminWallet.send(
+                admin.getSender(),
+                { value: toNano('0.1') },
+                {
+                    $$type: 'JettonBurn',
+                    queryId: 2n,
+                    amount: 5_000n,
+                    responseDestination: admin.address,
+                    customPayload: null,
+                }
+            );
+
+            const minterData = await jettonMinter.getGetJettonData();
+            expect(minterData.totalSupply).toBe(TOTAL_SUPPLY - 8_000n); // 992,000
+
+            // Sum of balances = new total supply
+            const adminData = await adminWallet.getGetWalletData();
+            const u1Data = await user1Wallet.getGetWalletData();
+            const sumBalances = adminData.balance + u1Data.balance;
+            expect(sumBalances).toBe(TOTAL_SUPPLY - 8_000n);
+        });
+    });
+
+    describe('Integration: Edge Cases', () => {
+        it('should handle transfer of entire balance (max balance)', async () => {
+            const adminWallet = await getJettonWallet(admin.address);
+
+            // Transfer ALL tokens to user1
+            await adminWallet.send(
+                admin.getSender(),
+                { value: toNano('0.1') },
+                {
+                    $$type: 'JettonTransfer',
+                    queryId: 0n,
+                    amount: TOTAL_SUPPLY,
+                    destination: user1.address,
+                    responseDestination: admin.address,
+                    customPayload: null,
+                    forwardTonAmount: 0n,
+                    forwardPayload: beginCell().storeUint(0, 1).asSlice(),
+                }
+            );
+
+            const adminData = await adminWallet.getGetWalletData();
+            expect(adminData.balance).toBe(0n);
+
+            const user1Wallet = await getJettonWallet(user1.address);
+            const u1Data = await user1Wallet.getGetWalletData();
+            expect(u1Data.balance).toBe(TOTAL_SUPPLY);
+        });
+
+        it('should handle transfer to self', async () => {
+            const adminWallet = await getJettonWallet(admin.address);
+
+            const result = await adminWallet.send(
+                admin.getSender(),
+                { value: toNano('0.1') },
+                {
+                    $$type: 'JettonTransfer',
+                    queryId: 0n,
+                    amount: 100n,
+                    destination: admin.address, // self-transfer
+                    responseDestination: admin.address,
+                    customPayload: null,
+                    forwardTonAmount: 0n,
+                    forwardPayload: beginCell().storeUint(0, 1).asSlice(),
+                }
+            );
+
+            // Balance should remain the same
+            const adminData = await adminWallet.getGetWalletData();
+            expect(adminData.balance).toBe(TOTAL_SUPPLY);
+        });
+
+        it('should handle transfer of 1 token (minimum amount)', async () => {
+            const adminWallet = await getJettonWallet(admin.address);
+
+            await adminWallet.send(
+                admin.getSender(),
+                { value: toNano('0.1') },
+                {
+                    $$type: 'JettonTransfer',
+                    queryId: 0n,
+                    amount: 1n,
+                    destination: user1.address,
+                    responseDestination: admin.address,
+                    customPayload: null,
+                    forwardTonAmount: 0n,
+                    forwardPayload: beginCell().storeUint(0, 1).asSlice(),
+                }
+            );
+
+            const adminData = await adminWallet.getGetWalletData();
+            expect(adminData.balance).toBe(TOTAL_SUPPLY - 1n);
+
+            const user1Wallet = await getJettonWallet(user1.address);
+            const u1Data = await user1Wallet.getGetWalletData();
+            expect(u1Data.balance).toBe(1n);
+        });
+
+        it('should handle multiple sequential transfers to same recipient', async () => {
+            const adminWallet = await getJettonWallet(admin.address);
+
+            for (let i = 0; i < 5; i++) {
+                await adminWallet.send(
+                    admin.getSender(),
+                    { value: toNano('0.1') },
+                    {
+                        $$type: 'JettonTransfer',
+                        queryId: BigInt(i),
+                        amount: 100n,
+                        destination: user1.address,
+                        responseDestination: admin.address,
+                        customPayload: null,
+                        forwardTonAmount: 0n,
+                        forwardPayload: beginCell().storeUint(0, 1).asSlice(),
+                    }
+                );
+            }
+
+            const user1Wallet = await getJettonWallet(user1.address);
+            const u1Data = await user1Wallet.getGetWalletData();
+            expect(u1Data.balance).toBe(500n); // 5 × 100
+
+            const adminData = await adminWallet.getGetWalletData();
+            expect(adminData.balance).toBe(TOTAL_SUPPLY - 500n);
+        });
+    });
+
+    describe('Integration: Gas Consumption', () => {
+        it('should log gas usage for key operations', async () => {
+            const adminWallet = await getJettonWallet(admin.address);
+
+            // Transfer
+            const transferResult = await adminWallet.send(
+                admin.getSender(),
+                { value: toNano('0.1') },
+                {
+                    $$type: 'JettonTransfer',
+                    queryId: 0n,
+                    amount: 1000n,
+                    destination: user1.address,
+                    responseDestination: admin.address,
+                    customPayload: null,
+                    forwardTonAmount: 0n,
+                    forwardPayload: beginCell().storeUint(0, 1).asSlice(),
+                }
+            );
+
+            // Burn
+            const user1Wallet = await getJettonWallet(user1.address);
+            const burnResult = await user1Wallet.send(
+                user1.getSender(),
+                { value: toNano('0.1') },
+                {
+                    $$type: 'JettonBurn',
+                    queryId: 1n,
+                    amount: 500n,
+                    responseDestination: user1.address,
+                    customPayload: null,
+                }
+            );
+
+            // Calculate total fees across all transactions
+            const transferTotalFees = transferResult.transactions.reduce(
+                (sum, tx) => sum + (tx.totalFees?.coins ?? 0n), 0n
+            );
+            const burnTotalFees = burnResult.transactions.reduce(
+                (sum, tx) => sum + (tx.totalFees?.coins ?? 0n), 0n
+            );
+
+            console.log('=== Gas Consumption Report ===');
+            console.log(`Transfer: ${transferTotalFees} nanoTON total fees (${transferResult.transactions.length} txns)`);
+            console.log(`Burn:     ${burnTotalFees} nanoTON total fees (${burnResult.transactions.length} txns)`);
+
+            // Sanity check: fees should be reasonable (< 0.05 TON per operation)
+            expect(transferTotalFees).toBeLessThan(toNano('0.05'));
+            expect(burnTotalFees).toBeLessThan(toNano('0.05'));
+        });
+    });
 });
