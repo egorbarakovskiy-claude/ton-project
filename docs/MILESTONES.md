@@ -64,11 +64,11 @@
 ## M5: Testnet Deployment
 **Goal:** Deploy to TON Testnet and verify real-world behavior.
 
-- [ ] Deploy Jetton Master to TON Testnet
-- [ ] Mint all tokens to admin wallet
+- [x] Deploy Jetton Master to TON Testnet → `kQAkWd90ldTMx_vH52NUaRmpRJ3isxjk02iiVkes1nGG1gtB`
+- [x] Mint all 1,000,000 tokens to admin wallet in single deploy tx
 - [ ] Test transfer via TON Explorer / Tonkeeper
 - [ ] Verify token shows up in wallets correctly
-- [ ] Document deployment process (addresses, txns)
+- [x] Document deployment process → `docs/DEPLOYMENT-TESTNET.md`
 
 **Exit criteria:** Token visible and transferable on TON Testnet.
 
